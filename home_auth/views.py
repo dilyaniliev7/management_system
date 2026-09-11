@@ -48,22 +48,58 @@ def login_view(request):
         user = authenticate(request, username=email, password=password)
         if user is not None:
             login(request, user)
-            messages.success(request, 'Login successful !')
+            messages.success(request, 'Login successful!')
 
+            # Redirect user based on their role
             if user.is_admin:
-                return redirect("admin_dashboard")
-
+                return redirect('admin_dashboard')
             elif user.is_teacher:
-                return redirect("teacher_dashboard")
-
+                return redirect('teacher_dashboard')
             elif user.is_student:
-                return redirecct("student_dashboard")
-
+                return redirect('dashboard')
             else:
                 messages.error(request, 'Invalid user role')
-                return redirect('index')
+                return redirect('index')  # Redirect to index in case of error
+
         else:
             messages.error(request, 'Invalid credentials')
-    return render(request, 'authentication/login.html')
+    return render(request, 'authentication/login.html')  # Render login template
 
 
+def forgot_password_view(request):
+    if request.method == 'POST':
+        email = request.POST['email']
+        user = CustomUser.objects.filter(email=email).first()
+
+        if user:
+            token = get_random_string(32)
+            reset_request = PasswordResetRequest.objects.create(user=user, email=email, token=token)
+            reset_request.send_reset_email()
+            messages.success(request, 'Reset link sent to your email.')
+        else:
+            messages.error(request, 'Email not found.')
+
+    return render(request, 'authentication/forgot-password.html')  # Render forgot password template
+
+
+def reset_password_view(request, token):
+    reset_request = PasswordResetRequest.objects.filter(token=token).first()
+
+    if not reset_request or not reset_request.is_valid():
+        messages.error(request, 'Invalid or expired reset link')
+        return redirect('index')
+
+    if request.method == 'POST':
+        new_password = request.POST['new_password']
+        reset_request.user.set_password(new_password)
+        reset_request.user.save()
+        messages.success(request, 'Password reset successful')
+        return redirect('login')
+
+    return render(request, 'authentication/reset_password.html', {'token': token})  # Render reset password template
+
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, 'You have been logged out.')
+    return redirect('index')
