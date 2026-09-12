@@ -113,3 +113,6 @@ AUTH_USER_MODEL = 'home_auth.CustomUser'
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmaiBackend'
+
